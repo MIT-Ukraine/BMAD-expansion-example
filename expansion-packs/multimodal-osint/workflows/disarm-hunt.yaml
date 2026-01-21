@@ -1,0 +1,119 @@
+# Multimodal DISARM Technique Hunt Workflow
+# Adaptive multi-technique hunting with exploration and exploitation
+
+name: disarm-hunt
+description: |
+  Comprehensive multimodal DISARM technique hunting workflow.
+  Explores MULTIPLE techniques using adaptive selection, analyzing text AND images
+  to produce detailed investigation reports similar to experiment/FIMI_Investigation_Report.md
+
+mode: auto  # Auto-selects techniques based on data and strategy
+
+inputs:
+  required:
+    - data_path # Path to social media data (JSON/JSONL/CSV/Parquet/folder)
+    - investigation_id # Unique investigation identifier
+
+  optional:
+    - technique_ids: [] # Pre-specified techniques (empty for auto-suggestion)
+    - max_iterations: 5 # Maximum techniques to investigate
+    - platform: null # Platform name (telegram, twitter, facebook, etc.)
+    - image_sample_size: 50 # Max images to analyze per technique
+    - use_logos: true # Enable logo identification
+    - vlm_model: 'qwen3-vl:8b' # VLM model for image analysis
+    - strategy: 'balanced' # 'explore', 'exploit', or 'balanced'
+    - output_dir: 'investigations/{investigation_id}' # Output directory
+
+steps:
+  - name: initialize
+    description: Create investigation folder and initialize metadata
+    actions:
+      - create_folder: '{output_dir}'
+      - initialize_metadata:
+          investigation_id: '{investigation_id}'
+          data_path: '{data_path}'
+          start_time: '{now}'
+
+  - name: explore_data
+    description: Explore dataset structure and detect schema
+    task: init-data.md
+    inputs:
+      data_path: '{data_path}'
+      platform: '{platform}'
+      investigation_id: '{investigation_id}'
+    outputs:
+      data_info: '{data_exploration_results}'
+
+  - name: multi_technique_hunt
+    description: Iterative multi-technique hunting loop
+    loop:
+      iterations: '{max_iterations}'
+      steps:
+        - name: select_technique
+          description: Select next DISARM technique to hunt
+          task: suggest-technique.md
+          inputs:
+            data_info: '{data_info}'
+            prior_results: '{hunt_results}'
+            techniques_tried: '{techniques_tried_list}'
+            strategy: '{strategy}'
+            iteration: '{current_iteration}'
+            platform: '{platform}'
+          outputs:
+            technique_suggestion: '{selected_technique_info}'
+
+        - name: hunt_technique
+          description: Hunt for selected DISARM technique
+          task: execute-hunt.md
+          inputs:
+            data_path: '{data_path}'
+            data_info: '{data_info}'
+            technique_id: '{technique_suggestion.technique_id}'
+            technique_info: '{technique_suggestion.technique}'
+            investigation_id: '{investigation_id}'
+            platform: '{platform}'
+            image_sample_size: '{image_sample_size}'
+            use_logos: '{use_logos}'
+            vlm_model: '{vlm_model}'
+            output_dir: '{output_dir}'
+            iteration: '{current_iteration}'
+          outputs:
+            technique_result: '{hunt_result}'
+
+        - name: record_result
+          description: Record technique hunt result
+          actions:
+            - append_to_list:
+                list: hunt_results
+                item: '{technique_result}'
+            - append_to_list:
+                list: techniques_tried_list
+                item: '{technique_suggestion.technique_id}'
+
+  - name: generate_report
+    description: Generate comprehensive FIMI investigation report
+    actions:
+      - generate_markdown_report:
+          template: experiment/FIMI_Investigation_Report.md
+          output_file: '{output_dir}/FIMI_Investigation_Report_{investigation_id}.md'
+          data:
+            investigation_meta: '{investigation_metadata}'
+            data_info: '{data_info}'
+            technique_results: '{hunt_results}'
+            summary:
+              total_techniques: '{len(hunt_results)}'
+              pass_count: '{count(hunt_results, status=PASS)}'
+              fail_count: '{count(hunt_results, status=FAIL)}'
+              inconclusive_count: '{count(hunt_results, status=INCONCLUSIVE)}'
+
+      - save_json:
+          file: '{output_dir}/results_{investigation_id}.json'
+          data:
+            investigation_meta: '{investigation_metadata}'
+            technique_results: '{hunt_results}'
+
+outputs:
+  - investigation_report: '{output_dir}/FIMI_Investigation_Report_{investigation_id}.md'
+  - structured_results: '{output_dir}/results_{investigation_id}.json'
+  - techniques_detected: '{filter(hunt_results, status=PASS)}'
+  - total_techniques_hunted: '{len(hunt_results)}'

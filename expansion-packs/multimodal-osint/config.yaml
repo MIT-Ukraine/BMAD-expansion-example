@@ -1,0 +1,55 @@
+name: multimodal-fimi-osint
+version: 1.0.0
+short-title: Multimodal FIMI/DISARM Investigator
+description: |
+  Multimodal OSINT expansion pack for automated DISARM technique hunting in social media data
+  with comprehensive image analysis capabilities. Your friendly FIMI detective that analyzes
+  both text AND images to uncover disinformation campaigns!
+
+  Specializes in:
+  - Multimodal DISARM technique detection (text + images)
+  - VLM-powered image analysis (memes, manipulation, visual narratives)
+  - Logo identification and affiliation tracking (142+ logo database)
+  - Adaptive multi-technique hunting with explore-exploit strategy
+  - Comprehensive investigation reports (modeled after FIMI_Investigation_Report.md)
+  - Native format support (JSON/JSONL/CSV/Parquet) - no SQL conversion needed
+  - Politically neutral, evidence-based analysis
+
+  Perfect for investigating Telegram channels, Twitter campaigns, and any multimodal
+  social media content for Foreign Information Manipulation and Interference (FIMI).
+
+author: Alicia
+slashPrefix: multimodal-osint
+markdownExploder: false
+
+# Core agent (one enthusiastic detective!)
+agents:
+  - multimodal-investigator.md
+
+# Core tasks for multimodal DISARM hunting
+tasks:
+  - init-data.md           # Data exploration and schema detection
+  - execute-hunt.md        # Main multi-technique hunting workflow
+  - suggest-technique.md   # Adaptive technique selection (explore-exploit)
+  - vision.md              # VLM-powered image analysis
+  - logos.md               # Logo identification (142+ logos)
+
+# Main workflow
+workflows:
+  - disarm-hunt.yaml       # Comprehensive multi-technique hunt workflow
+
+# Templates
+templates: []
+
+# Knowledge base files (loaded by agent)
+devLoadAlwaysFiles:
+  - data/disarm-framework-reference.md    # DISARM framework techniques
+  - data/manipulation-playbook.md         # Known manipulation patterns
+  - data/platform-behavior-baselines.md   # Normal behavior baselines
+
+# External resources
+externalResources:
+  - vision.ipynb (project root) - VLM notebook template for image analysis
+  - logos/logos.csv - Logo database with 142+ conflict-related logos
+  - logos/images/ - Logo reference images directory
+  - experiment/FIMI_Investigation_Report.md - Example investigation report template
